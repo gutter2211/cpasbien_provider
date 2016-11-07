@@ -32,14 +32,12 @@ class cpasbien(TorrentProvider, MovieProvider):
         'search': 'http://www.cpasbien.cm/recherche/',
     }
 
-    http_time_between_calls = 1 #seconds
+    http_time_between_calls = 1  # seconds
     cat_backup_id = None
-
 
     class NotLoggedInHTTPError(urllib2.HTTPError):
         def __init__(self, url, code, msg, headers, fp):
             urllib2.HTTPError.__init__(self, url, code, msg, headers, fp)
-
 
     class PTPHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
         def http_error_302(self, req, fp, code, msg, headers):
@@ -49,59 +47,60 @@ class cpasbien(TorrentProvider, MovieProvider):
             else:
                 raise cpasbien.NotLoggedInHTTPError(req.get_full_url(), code, msg, headers, fp)
 
-
     def _search(self, movie, quality, results):
         # Cookie login
         if not self.last_login_check and not self.login():
             return
 
-        TitleStringReal = (getTitle(movie['info']) + ' ' + simplifyString(quality['identifier'] )).replace('-',' ').replace(' ',' ').replace(' ',' ').replace(' ',' ').encode("utf8")
+        TitleStringReal = (getTitle(movie['info']) +
+                           ' ' +
+                           simplifyString(quality['identifier'])).replace('-', ' ').replace(' ', ' ').replace(' ', ' ').replace(' ', ' ').encode("utf8")
 
         URL = (self.urls['search']).encode('UTF8')
-        URL=unicodedata.normalize('NFD',unicode(URL,"utf8","replace"))
-        URL=URL.encode('ascii','ignore')
+        URL = unicodedata.normalize('NFD', unicode(URL, "utf8", "replace"))
+        URL = URL.encode('ascii', 'ignore')
         URL = urllib2.quote(URL.encode('utf8'), ":/?=")
 
         values = {
-            'champ_recherche' : TitleStringReal
+            'champ_recherche': TitleStringReal
         }
 
         data_tmp = urllib.urlencode(values)
-        req = urllib2.Request(URL, data_tmp, headers={'User-Agent' : "Mozilla/5.0"} )
-        data = urllib2.urlopen(req )
+        req = urllib2.Request(URL, data_tmp, headers={'User-Agent': "Mozilla/5.0"})
+        data = urllib2.urlopen(req)
         id = 1000
 
         if data:
             try:
                 html = BeautifulSoup(data)
-                lin=0
-                erlin=0
-                resultdiv=[]
-                while erlin==0:
+                lin = 0
+                erlin = 0
+                resultdiv = []
+                while erlin == 0:
                     try:
-                        classlin='ligne'+str(lin)
-                        resultlin=html.findAll(attrs = {'class' : [classlin]})
+                        classlin = 'ligne'+str(lin)
+                        resultlin = html.findAll(attrs={'class': [classlin]})
                         if resultlin:
                             for ele in resultlin:
                                 resultdiv.append(ele)
-                            lin+=1
+                            lin += 1
                         else:
-                            erlin=1
+                            erlin = 1
                     except:
-                        erlin=1
+                        erlin = 1
                 for result in resultdiv:
                     try:
                         new = {}
-                        name = result.findAll(attrs = {'class' : ["titre"]})[0].text
-                        testname=namer_check.correctName(name,movie)
-                        if testname==0:
+                        name = result.findAll(attrs={'class': ["titre"]})[0].text
+                        testname = namer_check.correctName(name, movie)
+                        if testname == 0:
                             continue
                         detail_url = result.find("a")['href']
-                        tmp = detail_url.split('/')[-1].replace('.html','.torrent')
+                        tmp = detail_url.split('/')[-1].replace('.html', '.torrent')
                         url_download = ('http://www.cpasbien.cm/telechargement/%s' % tmp)
-                        size = result.findAll(attrs = {'class' : ["poid"]})[0].text
-                        seeder = result.findAll(attrs = {'class' : ["seed_ok"]})[0].text
-                        leecher = result.findAll(attrs = {'class' : ["down"]})[0].text
+                        size = result.findAll(attrs={'class': ["poid"]})[0].text
+                        seeder = result.findAll(attrs={'class': ["seed_ok"]})[0].text
+                        leecher = result.findAll(attrs={'class': ["down"]})[0].text
                         age = '1'
 
                         verify = getTitle(movie['info']).split(' ')
@@ -109,7 +108,7 @@ class cpasbien(TorrentProvider, MovieProvider):
                         add = 1
 
                         for verify_unit in verify:
-                            if (name.lower().find(verify_unit.lower()) == -1) :
+                            if (name.lower().find(verify_unit.lower()) == -1):
                                 add = 0
 
                         def extra_check(item):
@@ -136,7 +135,6 @@ class cpasbien(TorrentProvider, MovieProvider):
         else:
             log.debug('No search results found.')
 
-
     def ageToDays(self, age_str):
         age = 0
         age_str = age_str.replace('&nbsp;', ' ')
@@ -156,7 +154,6 @@ class cpasbien(TorrentProvider, MovieProvider):
             age += tryInt(nr) * mult
 
         return tryInt(age)
-
 
     def login(self):
         cookieprocessor = urllib2.HTTPCookieProcessor(cookielib.CookieJar())
@@ -185,13 +182,12 @@ class cpasbien(TorrentProvider, MovieProvider):
             log.error('Login to cPASbien failed: returned code %d' % response.getcode())
             return False
 
-
-    def loginDownload(self, url = '', nzb_id = ''):
+    def loginDownload(self, url='', nzb_id=''):
         values = {
-            'url' : '/'
+            'url': '/'
         }
         data_tmp = urllib.urlencode(values)
-        req = urllib2.Request(url, data_tmp, headers={'User-Agent' : "Mozilla/5.0"} )
+        req = urllib2.Request(url, data_tmp, headers={'User-Agent': "Mozilla/5.0"})
 
         try:
             if not self.last_login_check and not self.login():
@@ -200,16 +196,15 @@ class cpasbien(TorrentProvider, MovieProvider):
         except:
             log.error('Failed downloading from %s: %s', (self.getName(), traceback.format_exc()))
 
-
-    def download(self, url = '', nzb_id = ''):
+    def download(self, url='', nzb_id=''):
         if not self.last_login_check and not self.login():
             return
 
         values = {
-            'url' : '/'
+            'url': '/'
         }
         data_tmp = urllib.urlencode(values)
-        req = urllib2.Request(url, data_tmp, headers={'User-Agent' : "Mozilla/5.0"} )
+        req = urllib2.Request(url, data_tmp, headers={'User-Agent': "Mozilla/5.0"})
 
         try:
             return urllib2.urlopen(req).read()
